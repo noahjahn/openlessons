@@ -1,0 +1,48 @@
+version: '3.7'
+
+volumes:
+  bundle:
+  postgres:
+
+services:
+  ruby:
+    build:
+      dockerfile: 'docker/ruby/Dockerfile'
+      context: '.'
+      args:
+        - UID=${UID}
+    restart: 'always'
+    volumes:
+      - bundle:/usr/local/bundle
+      - ./:/home/openlessons/app
+    working_dir: /home/openlessons/app
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails server -p 3000 -b '0.0.0.0'"
+    ports:
+      - 3000:3000
+    depends_on:
+      - postgres
+  
+  node:
+    build:
+      dockerfile: 'docker/node/Dockerfile'
+      context: '.'
+      args:
+        - UID=${UID}
+    working_dir: /home/node/openlessons
+    volumes:
+      - ./:/home/node/openlessons
+
+  postgres:
+    build:
+      dockerfile: 'docker/postgres/Dockerfile'
+      context: '.'
+      args:
+        UID: ${UID}
+    restart: 'always'
+    user: '${UID}:${UID}'
+    environment:
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
